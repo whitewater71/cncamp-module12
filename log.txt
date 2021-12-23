@@ -38,3 +38,15 @@ $ curl -H "Host: simple.cncamp.io" 10.96.87.238/healthz -v
 ok
 * Connection #0 to host 10.96.87.238 left intact
 
+$ k apply -f nginx.yaml -n simple
+deployment.apps/nginx-deployment created
+service/nginx created
+
+$ k get svc -n simple
+NAME     TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
+nginx    ClusterIP   10.106.191.149   <none>        80/TCP    31s
+simple   ClusterIP   10.110.80.179    <none>        80/TCP    54m
+
+$ k apply -f istio-specs.yaml -n simple
+virtualservice.networking.istio.io/simple configured
+
