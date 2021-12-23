@@ -170,11 +170,9 @@ namespace/securesvc created
 $ kubectl label ns securesvc istio-injection=enabled
 namespace/securesvc labeled
 
-$ kubectl create configmap httpserver-env-config --from-env-file=httpserver.configmap -n securesvc
-configmap/httpserver-env-config created
-
-$ k create -f httpserver-deploy.yaml -n securesvc
+$ kubectl create -f httpserver.yaml -n securesvc
 deployment.apps/httpserver created
+service/httpserver created
 
 $ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=cncamp Inc./CN=*.cncamp.io' -keyout cncamp.io.key -out cncamp.io.crt
 Generating a RSA private key
@@ -196,3 +194,115 @@ istio-egressgateway    ClusterIP      10.105.43.4      <none>        80/TCP,443/
 istio-ingressgateway   LoadBalancer   10.96.87.238     <pending>     15021:31427/TCP,80:30794/TCP,443:31970/TCP,31400:32215/TCP,15443:32067/TCP   2d18h
 istiod                 ClusterIP      10.111.165.140   <none>        15010/TCP,15012/TCP,443/TCP,15014/TCP                                        2d18h
 
+$ curl --resolve httpsserver.cncamp.io:443:10.96.87.238 https://httpsserver.cncamp.io/healthz -v -k
+* Added httpsserver.cncamp.io:443:10.96.87.238 to DNS cache
+* Hostname httpsserver.cncamp.io was found in DNS cache
+*   Trying 10.96.87.238:443...
+* TCP_NODELAY set
+* Connected to httpsserver.cncamp.io (10.96.87.238) port 443 (#0)
+* ALPN, offering h2
+* ALPN, offering http/1.1
+* successfully set certificate verify locations:
+*   CAfile: /etc/ssl/certs/ca-certificates.crt
+  CApath: /etc/ssl/certs
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+* TLSv1.3 (IN), TLS handshake, CERT verify (15):
+* TLSv1.3 (IN), TLS handshake, Finished (20):
+* TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+* TLSv1.3 (OUT), TLS handshake, Finished (20):
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384
+* ALPN, server accepted to use h2
+* Server certificate:
+*  subject: O=cncamp Inc.; CN=*.cncamp.io
+*  start date: Dec 23 09:09:25 2021 GMT
+*  expire date: Dec 23 09:09:25 2022 GMT
+*  issuer: O=cncamp Inc.; CN=*.cncamp.io
+*  SSL certificate verify result: self signed certificate (18), continuing anyway.
+* Using HTTP2, server supports multi-use
+* Connection state changed (HTTP/2 confirmed)
+* Copying HTTP/2 data in stream buffer to connection buffer after upgrade: len=0
+* Using Stream ID: 1 (easy handle 0x558ec0013860)
+> GET /healthz HTTP/2
+> Host: httpsserver.cncamp.io
+> user-agent: curl/7.68.0
+> accept: */*
+>
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+* old SSL session ID is stale, removing
+* Connection state changed (MAX_CONCURRENT_STREAMS == 2147483647)!
+< HTTP/2 200
+< date: Thu, 23 Dec 2021 11:44:51 GMT
+< content-length: 3
+< content-type: text/plain; charset=utf-8
+< x-envoy-upstream-service-time: 312
+< server: istio-envoy
+<
+ok
+* Connection #0 to host httpsserver.cncamp.io left intact
+
+$ curl --resolve httpsserver.cncamp.io:443:10.96.87.238 https://httpsserver.cncamp.io/hello -v -k
+* Added httpsserver.cncamp.io:443:10.96.87.238 to DNS cache
+* Hostname httpsserver.cncamp.io was found in DNS cache
+*   Trying 10.96.87.238:443...
+* TCP_NODELAY set
+* Connected to httpsserver.cncamp.io (10.96.87.238) port 443 (#0)
+* ALPN, offering h2
+* ALPN, offering http/1.1
+* successfully set certificate verify locations:
+*   CAfile: /etc/ssl/certs/ca-certificates.crt
+  CApath: /etc/ssl/certs
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+* TLSv1.3 (IN), TLS handshake, CERT verify (15):
+* TLSv1.3 (IN), TLS handshake, Finished (20):
+* TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+* TLSv1.3 (OUT), TLS handshake, Finished (20):
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384
+* ALPN, server accepted to use h2
+* Server certificate:
+*  subject: O=cncamp Inc.; CN=*.cncamp.io
+*  start date: Dec 23 09:09:25 2021 GMT
+*  expire date: Dec 23 09:09:25 2022 GMT
+*  issuer: O=cncamp Inc.; CN=*.cncamp.io
+*  SSL certificate verify result: self signed certificate (18), continuing anyway.
+* Using HTTP2, server supports multi-use
+* Connection state changed (HTTP/2 confirmed)
+* Copying HTTP/2 data in stream buffer to connection buffer after upgrade: len=0
+* Using Stream ID: 1 (easy handle 0x55f53411e860)
+> GET /hello HTTP/2
+> Host: httpsserver.cncamp.io
+> user-agent: curl/7.68.0
+> accept: */*
+>
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+* old SSL session ID is stale, removing
+* Connection state changed (MAX_CONCURRENT_STREAMS == 2147483647)!
+< HTTP/2 200
+< date: Thu, 23 Dec 2021 11:47:20 GMT
+< content-length: 651
+< content-type: text/plain; charset=utf-8
+< x-envoy-upstream-service-time: 890
+< server: istio-envoy
+<
+hello [stranger]
+===================Details of the http request header:============
+X-B3-Sampled=[1]
+Accept=[*/*]
+X-Envoy-Attempt-Count=[1]
+X-Envoy-Internal=[true]
+X-Forwarded-Client-Cert=[By=spiffe://cluster.local/ns/securesvc/sa/default;Hash=695c47345f6e8dda9c4f4b3a108a419ea42779a232e6086580c160aa31204130;Subject="";URI=spiffe://cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account]
+X-B3-Traceid=[00b0abad8106e8363ffee4f3d727e971]
+X-B3-Spanid=[2c67ae4b7684db28]
+X-B3-Parentspanid=[3ffee4f3d727e971]
+User-Agent=[curl/7.68.0]
+X-Forwarded-For=[10.0.2.15]
+X-Forwarded-Proto=[https]
+X-Request-Id=[4fc85095-db94-9e23-b85d-17f43d124175]
+* Connection #0 to host httpsserver.cncamp.io left intact
