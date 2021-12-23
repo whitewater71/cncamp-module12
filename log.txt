@@ -167,14 +167,14 @@ Commercial support is available at
 $ kubectl create ns securesvc
 namespace/securesvc created
 
+$ kubectl label ns securesvc istio-injection=enabled
+namespace/securesvc labeled
+
 $ kubectl create configmap httpserver-env-config --from-env-file=httpserver.configmap -n securesvc
 configmap/httpserver-env-config created
 
 $ k create -f httpserver-deploy.yaml -n securesvc
 deployment.apps/httpserver created
-
-$ kubectl label ns securesvc istio-injection=enabled
-namespace/securesvc labeled
 
 $ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=cncamp Inc./CN=*.cncamp.io' -keyout cncamp.io.key -out cncamp.io.crt
 Generating a RSA private key
