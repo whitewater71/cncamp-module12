@@ -163,3 +163,36 @@ Commercial support is available at
 </body>
 </html>
 * Connection #0 to host 10.96.87.238 left intact
+
+$ kubectl create ns securesvc
+namespace/securesvc created
+
+$ kubectl create configmap httpserver-env-config --from-env-file=httpserver.configmap -n securesvc
+configmap/httpserver-env-config created
+
+$ k create -f httpserver-deploy.yaml -n securesvc
+deployment.apps/httpserver created
+
+$ kubectl label ns securesvc istio-injection=enabled
+namespace/securesvc labeled
+
+$ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=cncamp Inc./CN=*.cncamp.io' -keyout cncamp.io.key -out cncamp.io.crt
+Generating a RSA private key
+...+++++
+....................................................+++++
+writing new private key to 'cncamp.io.key'
+-----
+
+$ kubectl create -n istio-system secret tls cncamp-credential --key=cncamp.io.key --cert=cncamp.io.crt
+secret/cncamp-credential created
+
+$ k apply -f istio-specs.yaml -n securesvc
+virtualservice.networking.istio.io/httpsserver created
+gateway.networking.istio.io/httpsserver created
+
+$ k get svc -n istio-system
+NAME                   TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)                                                                      AGE
+istio-egressgateway    ClusterIP      10.105.43.4      <none>        80/TCP,443/TCP                                                               2d18h
+istio-ingressgateway   LoadBalancer   10.96.87.238     <pending>     15021:31427/TCP,80:30794/TCP,443:31970/TCP,31400:32215/TCP,15443:32067/TCP   2d18h
+istiod                 ClusterIP      10.111.165.140   <none>        15010/TCP,15012/TCP,443/TCP,15014/TCP                                        2d18h
+
