@@ -1,9 +1,6 @@
 $ kubectl create ns simple
 namespace/simple created
 
-$ k create -f httpserver-deploy.yaml -n simple
-deployment.apps/httpserver created
-
 $ k apply -f simple.yaml -n simple
 deployment.apps/simple created
 service/simple created
