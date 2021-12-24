@@ -246,3 +246,103 @@ $ curl --resolve httpsserver.cncamp.io:443:10.96.87.238 https://httpsserver.cnca
 <
 ok
 * Connection #0 to host httpsserver.cncamp.io left intact
+
+$ kubectl apply -f jaeger.yaml
+deployment.apps/jaeger created
+service/tracing created
+service/zipkin created
+service/jaeger-collector created
+
+$ kubectl edit configmap istio -n istio-system
+configmap/istio edited
+
+$ ki get po
+NAME                                    READY   STATUS    RESTARTS   AGE
+istio-egressgateway-776546bdc4-q5gx4    1/1     Running   0          3d13h
+istio-ingressgateway-77b69b4bf8-tmcr4   1/1     Running   0          3d13h
+istiod-759c9bb994-59nwv                 1/1     Running   0          3d13h
+jaeger-5f65fdbf9b-4rfnl                 1/1     Running   0          30m
+
+$ kubectl create ns tracing
+namespace/tracing created
+
+$ kubectl label ns tracing istio-injection=enabled
+namespace/tracing labeled
+
+$ kubectl -n tracing apply -f service0.yaml
+deployment.apps/service0 created
+service/service0 created
+$ kubectl -n tracing apply -f service1.yaml
+deployment.apps/service1 created
+service/service1 created
+$ kubectl -n tracing apply -f service2.yaml
+deployment.apps/service2 created
+service/service2 created
+
+$ kubectl apply -f istio-specs.yaml -n tracing
+virtualservice.networking.istio.io/service0 created
+gateway.networking.istio.io/service0 created
+
+$ ki get svc
+NAME                   TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)                                                                      AGE
+istio-egressgateway    ClusterIP      10.105.43.4      <none>        80/TCP,443/TCP                                                               3d14h
+istio-ingressgateway   LoadBalancer   10.96.87.238     <pending>     15021:31427/TCP,80:30794/TCP,443:31970/TCP,31400:32215/TCP,15443:32067/TCP   3d14h
+istiod                 ClusterIP      10.111.165.140   <none>        15010/TCP,15012/TCP,443/TCP,15014/TCP                                        3d14h
+jaeger-collector       ClusterIP      10.105.97.6      <none>        14268/TCP,14250/TCP,9411/TCP                                                 42m
+tracing                ClusterIP      10.110.232.12    <none>        80/TCP,16685/TCP                                                             42m
+zipkin                 ClusterIP      10.107.234.119   <none>        9411/TCP                                                                     42m
+
+$ curl 10.96.87.238/service0
+===================Details of the http request header:============
+HTTP/1.1 200 OK
+Transfer-Encoding: chunked
+Content-Type: text/plain; charset=utf-8
+Date: Fri, 24 Dec 2021 05:32:35 GMT
+Server: envoy
+X-Envoy-Upstream-Service-Time: 828
+
+383
+===================Details of the http request header:============
+HTTP/1.1 200 OK
+Content-Length: 663
+Content-Type: text/plain; charset=utf-8
+Date: Fri, 24 Dec 2021 05:32:35 GMT
+Server: envoy
+X-Envoy-Upstream-Service-Time: 286
+
+===================Details of the http request header:============
+X-Forwarded-For=[10.0.2.15]
+X-B3-Spanid=[101ed314c4fd7b69]
+X-B3-Parentspanid=[39e1d3fcc43dd596]
+X-B3-Sampled=[1]
+User-Agent=[Go-http-client/1.1,Go-http-client/1.1,curl/7.68.0]
+Accept-Encoding=[gzip,gzip]
+X-Envoy-Internal=[true]
+X-Request-Id=[e9c7a8fe-5da3-9bb5-b2b7-93a001de9106]
+X-B3-Traceid=[c3bff4576299e5ec1eca5e8b2482ef5e]
+X-Forwarded-Client-Cert=[By=spiffe://cluster.local/ns/tracing/sa/default;Hash=4fdb661351541d72ee2ce27d6619bff08dfa9a46be80aeba6b2eb0ac4a890e03;Subject="";URI=spiffe://cluster.local/ns/tracing/sa/default]
+Accept=[*/*]
+X-Envoy-Attempt-Count=[1]
+X-Forwarded-Proto=[http]
+
+0
+
+$ k get po -n tracing
+NAME                        READY   STATUS    RESTARTS   AGE
+service0-6c44bfdf9d-tzzq8   2/2     Running   0          9m22s
+service1-7bf7c99c55-7qqvx   2/2     Running   0          9m4s
+service2-67cd848976-d67f5   2/2     Running   0          8m55s
+
+$ k logs -f service2-67cd848976-d67f5 -n tracing
+ERROR: logging before flag.Parse: I1224 05:24:51.923161       1 main.go:21] Starting service2
+ERROR: logging before flag.Parse: I1224 05:24:51.925476       1 main.go:38] Server Started
+ERROR: logging before flag.Parse: I1224 05:32:35.024858       1 main.go:67] entering v2 root handler
+ERROR: logging before flag.Parse: I1224 05:32:35.045326       1 main.go:75] Respond in 19 ms
+ERROR: logging before flag.Parse: I1224 05:36:21.264694       1 main.go:67] entering v2 root handler
+ERROR: logging before flag.Parse: I1224 05:36:21.284780       1 main.go:75] Respond in 18 ms
+ERROR: logging before flag.Parse: I1224 05:36:48.411296       1 main.go:67] entering v2 root handler
+ERROR: logging before flag.Parse: I1224 05:36:48.425011       1 main.go:75] Respond in 13 ms
+
+vagrant@ubuntu-focal:~$ istioctl dashboard jaeger
+http://localhost:16686
+Failed to open browser; open http://localhost:16686 in your browser.
